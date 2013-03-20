@@ -18,5 +18,8 @@ public class Debug {
 		if(flag)
 			System.out.println(str+" ");
 	}
+	public void sysout(String str){
+		System.out.println(str+" ");
+	}
 
 }

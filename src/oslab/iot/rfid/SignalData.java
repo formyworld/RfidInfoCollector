@@ -17,4 +17,7 @@ public class SignalData {
 		long ms = ( now.getTime() - readTime.getTime() ) / 1000;
 		return  ( ms > Settings.THRESHOLD_IS_OUT  ) ? true : false;
 	}
+	public String toString(){
+		return " room:"+Integer.toString(readerId)+" time:"+readTime.toString();
+	}
 }

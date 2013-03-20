@@ -3,6 +3,7 @@ package oslab.iot.rfid;
 import java.sql.ResultSet;
 import java.util.*;
 
+import oslab.iot.db.DBOConcurrence;
 import oslab.iot.db.DbOperation;
 import oslab.iot.util.Debug;
 
@@ -21,7 +22,6 @@ public class RFIDStatusDealChange extends Thread {
 	private final boolean debug_flag = false; // cg add
 	private Debug debug = new Debug(debug_flag);
 
-	private DbOperation dbo;
 	private Hashtable<String, String> rfid_reader_room; // **人员的room和rfidreader对应表
 
 	public RFIDStatusDealChange(Hashtable<String, String> rfid_reader_room,
@@ -35,27 +35,6 @@ public class RFIDStatusDealChange extends Thread {
 			this.newStatus_norssi = newStatus;
 		}
 
-		dbo = new DbOperation();
-		dbo.connOracle();
-		// get the real room-reader map
-		String s_sql_query = "select a.rfid||'-'||b.reader rfidreader,a.room status  "
-				+ "from  userinfo a , roomreaders b where a.room = b.room ";
-		ResultSet rs = dbo.getResult(s_sql_query);
-
-		try {
-			if (rs != null) {
-				while (rs.next()) {
-					rfid_reader_room.put(rs.getString("rfidreader"),
-							rs.getString("status"));
-
-					debug.println(rs.getRow() + " : "
-							+ rs.getString("rfidreader") + " - "
-							+ rs.getString("status"));
-				}
-			}
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
 	}
 
 	/**
@@ -140,7 +119,7 @@ public class RFIDStatusDealChange extends Thread {
 				+ "sysdate )";
 
 		debug.println("dealChange: -data " + new Date() + " - " + str_sql);
-		dbo.execSql(str_sql);
+		DBOConcurrence.execSql(str_sql);
 
 		// 修改rfidstatus 实时状态信息表
 		str_sql = "merge into rfidstatus a " + "using (select "
@@ -152,7 +131,7 @@ public class RFIDStatusDealChange extends Thread {
 				+ "insert (a.rfid,a.status) values(b.rfid,b.status) ";
 
 		debug.println("dealChange: -stat " + new Date() + " - " + str_sql);
-		dbo.execSql(str_sql);
+		DBOConcurrence.execSql(str_sql);
 
 	}
 

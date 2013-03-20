@@ -18,7 +18,7 @@ public class RFIDStatusJudge extends TimerTask {
 	private static int THREHOLD;  //阀值 不在几秒 来判断在与不在 
 	private static int NEARTHREHOLD = 120; //是否临近 
 	
-	private final boolean debug_flag = true;
+	private final boolean debug_flag = false;
 	private Debug debug = null;
 	
     private Hashtable<Integer,Date> ht_source;
@@ -121,6 +121,14 @@ public class RFIDStatusJudge extends TimerTask {
 			debug.println("------------------ "+ ht_source_New.size()+" rfid source dealed");
 			ht_source_New.clear();//******处理后删除源数据*****
 			debug.println("================== "+ ht_status_new.size()+" rfid status remains");
+			if(ht_source_New.get(14502)==null)
+				debug.sysout("--- after status judge -- 14502 in source  is null");
+			else
+				debug.sysout("--- after status judge -- 14502 in source "+ht_source_New.get(14502).toString());
+			if(ht_status_new.get(14502) == null)
+				debug.sysout("=== after status judge -- 14502 in status is null");
+			else
+				debug.sysout("=== after status judge -- 14502 in status "+ht_status_new.get(14502).toString());
 		}
 		
 		
