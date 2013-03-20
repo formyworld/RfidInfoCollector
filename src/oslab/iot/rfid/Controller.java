@@ -19,25 +19,29 @@ public class Controller {
 	private Hashtable<Integer, SignalData> rfid_status_new = new Hashtable<Integer, SignalData>(); // source-get中用到
 	private Hashtable<Integer, Integer> rfid_status_old = new Hashtable<Integer, Integer>(); // deal-diff中用到
 	private Hashtable<String, String> rfid_reader_room = new RFIDReaderRoom().get_rfid_reader_room();
+	
+	
+	//============================================================================================
 
 	public Controller() {
 		DBOConcurrence.connOracle();
 	}
 
 	/**
-	 * 开启rfid数据采集设备 这里采用网口进行采集 In: IP地址 Out: rfid_status_new
-	 * <rfid,<date,rssi,reader>>
+	 * 开启rfid数据采集设备 这里采用网口进行采集 
+	 * 	In: IP地址
+	 *  Out: rfid_status_new <rfid,<date,rssi,reader>>
 	 */
 	public void beginRFIDDeviceReading() {
 		// ******开启 rfid 读写
 		RFIDReaderNetThread n1435 = new RFIDReaderNetThread(S1435, PORT, 1435,
 				rfid_status_new, Settings.RSSIMODE);
-
 		n1435.start();
 	}
 
 	/**
-	 * 对获取的rfid_status_new进行分析，得出变化信息 IN: rfid_status_new ,rfid_status_old out:
+	 * 对获取的rfid_status_new进行分析，得出变化信息 
+	 * IN: rfid_status_new ,rfid_status_old 
 	 * changing info
 	 */
 	public void analyzeChangingStatus() {

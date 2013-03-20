@@ -9,8 +9,8 @@ public class Settings {
 	   public static final int SPAN_CONNECT=5*1000;//Reader connect 不断尝试连接周期
 	   public static final int SPAN_READ = 2*1000;//RFID Reader读取周期
 	 
-	   public static final int DELAY_JUDGE = 15*60*1000; //RFID SOURCE JUDGE延迟时间
-	   public static final int SPAN_JUDGE = 10*60*1000; //RFID SOURCE JUDGE处理周期
+	   public static final int DELAY_JUDGE = 2*1000; //RFID SOURCE JUDGE延迟时间
+	   public static final int SPAN_JUDGE = 2*1000; //RFID SOURCE JUDGE处理周期
 	   
 	   public static final int SPAN_DEAL_DIFF = 10*1000; //RFID STATUS DEAL CHANGE RFID状态变换信息处理周期
 	   

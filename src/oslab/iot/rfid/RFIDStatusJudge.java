@@ -1,142 +1,189 @@
 package oslab.iot.rfid;
+
 import java.util.*;
 
 import oslab.iot.util.Debug;
 
 /**
- * function:
- * 	    将<rfid,date> 转化到 <rfid,room/status>
- * @author David
- * TO BE CONTINUED
- *  <<BUG 1>> 只修改新情况 而未修改常驻情况  需检查 逻辑  find@7.22 
+ * function: 将<rfid,date> 转化到 <rfid,room/status>
+ * 
+ * @author David TO BE CONTINUED <<BUG 1>> 只修改新情况 而未修改常驻情况 需检查 逻辑 find@7.22
  */
 
 public class RFIDStatusJudge extends TimerTask {
-    
-	
-	private int workMode;
-	private static int THREHOLD;  //阀值 不在几秒 来判断在与不在 
-	private static int NEARTHREHOLD = 120; //是否临近 
-	
-	private final boolean debug_flag = false;
-	private Debug debug = null;
-	
-    private Hashtable<Integer,Date> ht_source;
-    private Hashtable<Integer,Integer> ht_status;
-    
 
-    private Hashtable<Integer, SignalData> ht_source_New; //
-    private Hashtable<Integer, SignalData> ht_status_new; //
-    private int room;
-   
-    // 构造函数 
-	public RFIDStatusJudge(Hashtable<Integer,Date> ht,Hashtable<Integer,Integer> ht_status,int room){
-		THREHOLD = 60;  ///  阀值 *******************************
-		this.ht_source = ht;
-		this.ht_status = ht_status;
+	private int workMode;
+	private static int THREHOLD; // 阀值 不在几秒 来判断在与不在
+	private static int NEARTHREHOLD = 120; // 是否临近
+
+	private final boolean debug_flag = true;
+	private Debug debug = new Debug(debug_flag);
+
+	private Hashtable<Integer, Date> rfid_read_data_no_rssi;
+	private Hashtable<Integer, Integer> rfid_status_no_rssi;
+
+	private Hashtable<Integer, SignalData> rfid_read_data_with_rssi; //
+	private Hashtable<Integer, SignalData> rfid_status_with_rssi; //
+	private int room;
+
+	// 构造函数
+	@Deprecated
+	public RFIDStatusJudge(Hashtable<Integer, Date> rfid_read_data_no_rssi,
+			Hashtable<Integer, Integer> rfid_status_no_rssi, int room) {
+		THREHOLD = 60; // / 阀值 *******************************
+		this.rfid_read_data_no_rssi = rfid_read_data_no_rssi;
+		this.rfid_status_no_rssi = rfid_status_no_rssi;
 		this.room = room;
-		debug = new Debug(debug_flag);
 	}
-	
-	public RFIDStatusJudge(int threhold,Hashtable<Integer,Date> ht,Hashtable<Integer,Integer> ht_status,int room){
+
+	public RFIDStatusJudge(int threhold,
+			Hashtable<Integer, Date> rfid_read_data_no_rssi,
+			Hashtable<Integer, Integer> rfid_status_no_rssi, int room) {
 		THREHOLD = threhold;
-		this.ht_source = ht;
-		this.ht_status = ht_status;
+		this.rfid_read_data_no_rssi = rfid_read_data_no_rssi;
+		this.rfid_status_no_rssi = rfid_status_no_rssi;
 		this.room = room;
-		debug = new Debug(debug_flag);
 	}
-	/// to change for  RSSI
-	public RFIDStatusJudge(Hashtable<Integer,SignalData> htNew, Hashtable<Integer, SignalData> ht_status_new){
-		THREHOLD = 60;  ///  阀值 *******************************
-		this.ht_source_New = htNew;
-		this.ht_status_new = ht_status_new;
-		debug = new Debug(debug_flag);
+
+	// / to change for RSSI
+	public RFIDStatusJudge(
+			Hashtable<Integer, SignalData> rfid_read_data_with_rssi,
+			Hashtable<Integer, SignalData> rfid_status_with_rssi) {
+		THREHOLD = 60; // / 阀值 *******************************
+		this.rfid_read_data_with_rssi = rfid_read_data_with_rssi;
+		this.rfid_status_with_rssi = rfid_status_with_rssi;
 	}
-	
-	private boolean isON(Date now,Date s){
-		long ms = ( now.getTime() - s.getTime() ) / 1000;
-		return  ( ms < THREHOLD ) ? true : false;
-		
+
+	private boolean isON(Date now, Date s) {
+		long ms = (now.getTime() - s.getTime()) / 1000;
+		return (ms < THREHOLD) ? true : false;
+
 	}
-	private boolean isNear(Date now,Date s){
-		long ms = ( now.getTime() - s.getTime() ) / 1000;
-		return  ( ms < NEARTHREHOLD  ) ? true : false;
-		
+
+	private boolean isNear(Date now, Date s) {
+		long ms = (now.getTime() - s.getTime()) / 1000;
+		return (ms < NEARTHREHOLD) ? true : false;
+
 	}
-	@Override 
-	public void run(){
+
+	/**
+	 * statusJudge function: judge from rfid_read_data 1 insert into status 2
+	 * refresh rfid_read_data
+	 */
+	@Deprecated
+	public void statusJudge_no_rssi() {
 		Date now = new Date();
-		Enumeration<Integer> em ;
-		
-//		if(this.workMode == RFIDReaderNetThread.NORSSIMODE){//NO RSSIMODE 不用管信号量强度 
-		if(Settings.workMode == Settings.NORSSIMODE){
-			em = this.ht_source.keys();
-			while(em.hasMoreElements()){
-				Integer key = em.nextElement();
-					if(isON(now,this.ht_source.get(key))){
-						ht_status.put(key, room);
-					}else                         // <<BUG 1>>
-					{
-						ht_status.put(key, -1);
-//						ht_source.remove(key);// 如果本读写头发现此KEY不在了 则在本地管理区删除 bug 
-					}
+		Enumeration<Integer> em;
+		em = this.rfid_read_data_no_rssi.keys();
+		/******************* 1 insert into status ***********************************/
+		while (em.hasMoreElements()) {
+			Integer key = em.nextElement();
+			if (isON(now, this.rfid_read_data_no_rssi.get(key))) {
+				rfid_status_no_rssi.put(key, room);
+			} else {
+				rfid_status_no_rssi.put(key, -1);
 			}
-			this.ht_source.clear();  //******处理后删除源数据*****
-			
-		}else{
-			em = this.ht_source_New.keys();
-			while(em.hasMoreElements()){
-				Integer key = em.nextElement();
-					//1 时间判断是否存活
-					 if(isON(now,this.ht_source_New.get(key).readTime)){
-						//1.1 判断 信号量强度 ===================待定 =============
-						 SignalData sd = ht_status_new.get(key);
-						 //1.1.1 如果为空 则插入
-						//1.1.2.1  如果不为空  旧的信号量强  且时间很近  比如2分钟之内 则不做操作 
-						//1.1.2.2  如果不为空  新的信号量强  且时间很近   则插入新值
-						//1.1.2.3  如果不为空  时间比较长 则插入新值
-						 if(sd == null){  // 无先例
-							 ht_status_new.put(key, this.ht_source_New.get(key));
-						 }else{  // 有先例
-							 if(sd.readerId == this.ht_source_New.get(key).readerId){ //同一 reader情况
-							    ht_status_new.get(key).rssi = (sd.rssi+this.ht_source_New.get(key).rssi)/2;
-							    ht_status_new.get(key).readTime= this.ht_source_New.get(key).readTime;
-							 }else{  //不是同一个reader
-								 if(isNear(this.ht_source_New.get(key).readTime, sd.readTime)){ //如果时间比较近
-									 if(this.ht_source_New.get(key).rssi>sd.rssi)
-										 ht_status_new.put(key, this.ht_source_New.get(key));
-								 }else{ //时间比较远
-									 ht_status_new.put(key, this.ht_source_New.get(key));
-								 }
-							 }
-						 } //end of is on
-						 
-					 }else                         // <<BUG 1>>
-						{
-							ht_status_new.put(key, new SignalData(new Date(), -100, -1));
-//							ht_source_New.remove(key);// 如果本读写头发现此KEY不在了 则在本地管理区删除 bug 
-						} //end of is NOT on
-					  
-				}//end of while
-			debug.println("------------------ "+ ht_source_New.size()+" rfid source dealed");
-			ht_source_New.clear();//******处理后删除源数据*****
-			debug.println("================== "+ ht_status_new.size()+" rfid status remains");
-			if(ht_source_New.get(14502)==null)
-				debug.sysout("--- after status judge -- 14502 in source  is null");
-			else
-				debug.sysout("--- after status judge -- 14502 in source "+ht_source_New.get(14502).toString());
-			if(ht_status_new.get(14502) == null)
-				debug.sysout("=== after status judge -- 14502 in status is null");
-			else
-				debug.sysout("=== after status judge -- 14502 in status "+ht_status_new.get(14502).toString());
+		}
+		/******************* 2 refresh rfid_read_data ***********************************/
+		this.rfid_read_data_no_rssi.clear(); // ******处理后删除源数据*****
+	}
+
+	/**
+	 * statusJudge function: judge from rfid_read_data 1 insert into status 2
+	 * refresh rfid_read_data
+	 */
+	public void statusJudge_with_rssi() {
+		Date now = new Date();
+		Enumeration<Integer> em;
+		em = this.rfid_read_data_with_rssi.keys();
+
+		/******************* 1 insert into status ***********************************/
+		while (em.hasMoreElements()) {
+			Integer key = em.nextElement();
+
+			SignalData old_status = rfid_status_with_rssi.get(key);
+
+			if (old_status == null) { // no old ===> insert
+				rfid_status_with_rssi.put(key,
+						this.rfid_read_data_with_rssi.get(key));
+			} else {
+				// old exists & same reader ===> update rssi ,update readtime
+				if (old_status.readerId == this.rfid_read_data_with_rssi
+						.get(key).readerId) { // 同一 reader情况
+					rfid_status_with_rssi.get(key).rssi = (old_status.rssi + this.rfid_read_data_with_rssi
+							.get(key).rssi) / 2;
+					rfid_status_with_rssi.get(key).readTime = this.rfid_read_data_with_rssi
+							.get(key).readTime;
+				}
+				// old exists & different reader ==> do not change as possible
+				else { // 不是同一个reader
+					if (isNear(this.rfid_read_data_with_rssi.get(key).readTime,
+							old_status.readTime)) { // 如果时间比较近
+						if (this.rfid_read_data_with_rssi.get(key).rssi > old_status.rssi)
+							rfid_status_with_rssi.put(key,
+									this.rfid_read_data_with_rssi.get(key));
+					} else { // 时间比较远
+						rfid_status_with_rssi.put(key,
+								this.rfid_read_data_with_rssi.get(key));
+					}
+				}// end of old exists
+			}// end of signal of ON status
+
+		}// end of while
+		/******************* 2 refresh rfid_read_data ***********************************/
+		this.rfid_read_data_with_rssi.clear();
+	}
+
+	@Override
+	public void run() {
+		/******************test debug ***********************************************/
+		SignalData read_data , status;
+		String str_read_data , str_status;
+		
+		read_data = this.rfid_read_data_with_rssi.get(14513);
+		status = this.rfid_status_with_rssi.get(14513);
+		
+		if(read_data == null) 
+			str_read_data = " no exists ";
+		else
+			str_read_data = read_data.toString();
+		
+		if(status == null) 
+			str_status = " no exists ";
+		else
+			str_status = status.toString();
+		
+		
+		debug.println("=====before judge , 14513 read data:　"+ str_read_data);
+		debug.println("=====			      	    status:　"+ str_status);
+		/******************test debug ************************************************/
+
+		/*********** situation NO rssi **************************************/
+		if (Settings.workMode == Settings.NORSSIMODE) {
+			this.statusJudge_no_rssi();
+		}
+		/*********** situation WITH rssi **************************************/
+		else {
+			this.statusJudge_with_rssi();
 		}
 		
+		/******************test debug ************************************************/
+		read_data = this.rfid_read_data_with_rssi.get(14513);
+		status = this.rfid_status_with_rssi.get(14513);
+		
+		if(read_data == null) 
+			str_read_data = " no exists ";
+		else
+			str_read_data = read_data.toString();
+		
+		if(status == null) 
+			str_status = " no exists ";
+		else
+			str_status = status.toString();
 		
 		
-		// 将<rfid,date> 转化到 <rfid,room(status)>
-		
-		
-		
-		
+		debug.println("*****after  judge , 14513 read data:　"+ str_read_data);
+		debug.println("***** 			      	    status:　"+ str_status);
+		/******************test debug ************************************************/
 	}
 }

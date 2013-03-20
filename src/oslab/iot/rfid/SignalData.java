@@ -18,6 +18,6 @@ public class SignalData {
 		return  ( ms > Settings.THRESHOLD_IS_OUT  ) ? true : false;
 	}
 	public String toString(){
-		return " room:"+Integer.toString(readerId)+" time:"+readTime.toString();
+		return " room:"+Integer.toString(readerId)+" time:"+readTime.toString()+" rssi: "+Float.toString(rssi);
 	}
 }

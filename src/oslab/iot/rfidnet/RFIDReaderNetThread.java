@@ -29,11 +29,11 @@ public class RFIDReaderNetThread extends Thread {
 	private final String sStart = "RRRRR";
 	private byte[] readBuffer = new byte[1024];
 
-	private Hashtable<Integer, Date> ht_rfid_source_data; // 时间
-	private Hashtable<Integer, Integer> ht_status;
+	private Hashtable<Integer, Date> rfid_read_data_no_rssi = null;
+	private Hashtable<Integer, Integer> rfid_status_no_rssi;
 
-	private Hashtable<Integer, SignalData> ht_rfid_source_data_New; //
-	private Hashtable<Integer, SignalData> ht_status_new;
+	private Hashtable<Integer, SignalData> rfid_read_data_with_rssi = null; //
+	private Hashtable<Integer, SignalData> rfid_status_with_rssi;
 
 	private NetBean reader;
 	protected int reader_status; // 读头状态
@@ -50,14 +50,11 @@ public class RFIDReaderNetThread extends Thread {
 	 * @param i
 	 * 
 	 */
+	@Deprecated
 	public RFIDReaderNetThread(String addr, int port, int room,
-			Hashtable<Integer, Integer> hd_status) {
-		this.ht_status = hd_status;
-		ht_rfid_source_data = new Hashtable<Integer, Date>();
-
-		// ht_rfid_source_data_New = new Hashtable<Integer,SignalData>(); //???
-		// no use?
-
+			Hashtable<Integer, Integer> rfid_status_no_rssi) {
+		this.rfid_status_no_rssi = rfid_status_no_rssi;
+		rfid_read_data_no_rssi = new Hashtable<Integer, Date>();
 		reader = new NetBean();
 
 		this.addr = addr;
@@ -67,10 +64,10 @@ public class RFIDReaderNetThread extends Thread {
 	}
 
 	public RFIDReaderNetThread(String addr, int port, int room,
-			Hashtable<Integer, SignalData> hd_status_new, int mode) {
+			Hashtable<Integer, SignalData> rfid_status_with_rssi, int mode) {
 
-		this.ht_status_new = hd_status_new;
-		ht_rfid_source_data_New = new Hashtable<Integer, SignalData>(); //
+		this.rfid_status_with_rssi = rfid_status_with_rssi;
+		rfid_read_data_with_rssi = new Hashtable<Integer, SignalData>(); //
 
 		reader = new NetBean();
 
@@ -87,12 +84,13 @@ public class RFIDReaderNetThread extends Thread {
 		// 1 启动一线程 对已读取的<tag,time>进行判断
 		Timer t = new Timer();
 		if (Settings.workMode == Settings.NORSSIMODE) {
-			t.schedule(
-					new RFIDStatusJudge(ht_rfid_source_data, ht_status, room),
-					Settings.DELAY_JUDGE, Settings.SPAN_JUDGE);
+			t.schedule(new RFIDStatusJudge(rfid_read_data_no_rssi,
+					rfid_status_no_rssi, room), Settings.DELAY_JUDGE,
+					Settings.SPAN_JUDGE);
 		} else {
-			t.schedule(new RFIDStatusJudge(ht_rfid_source_data_New,
-					ht_status_new), Settings.DELAY_JUDGE, Settings.SPAN_JUDGE);
+			t.schedule(new RFIDStatusJudge(rfid_read_data_with_rssi,
+					rfid_status_with_rssi), Settings.DELAY_JUDGE,
+					Settings.SPAN_JUDGE);
 		}
 
 		// 2 主线程进行 接收读头数据
@@ -194,35 +192,26 @@ public class RFIDReaderNetThread extends Thread {
 		int msg_len;
 		int rfid_flags_count = 0;
 		int tagId;
-		
+
 		while ((msg_len = p.unpack(msg)) > 0) {
 			tagId = Parser.getTagID(msg, msg_len);
-			
+
 			if (Settings.workMode == Settings.NORSSIMODE) {
-				ht_rfid_source_data.put(
-						new Integer(tagId), new Date());
+				rfid_read_data_no_rssi.put(new Integer(tagId), new Date());
 				rfid_flags_count++;
 			} else {
-				ht_rfid_source_data_New.put(
-						new Integer(tagId),
+				rfid_read_data_with_rssi.put(new Integer(tagId),
 						new SignalData(new Date(),
 								Parser.getRSSI(msg, msg_len), room));
 				rfid_flags_count++;
 			}
-			
-			if(tagId == 14513)
-				debug.sysout("14513 == "+new Date().toString());
-			
-			
-		}
 
-//		debug.println("*************reading rfid counts " + rfid_flags_count
-//				+ " , has rfid flags : " + ht_rfid_source_data_New.size());
-//		if (ht_rfid_source_data_New.get(14502) == null)
-//			debug.sysout("** source data ** 14502 isnull ");
-//		else
-//			debug.sysout("** source data ** 14502 "
-//					+ ht_rfid_source_data_New.get(14502).toString());
+			/************** debug ********************************
+			if (tagId == 14513)
+				debug.sysout("get source : 14513 == "
+						+ rfid_read_data_with_rssi.get(14513).toString());
+			*/
+		}
 
 	}
 
