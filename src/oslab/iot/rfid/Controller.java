@@ -69,8 +69,8 @@ public class Controller {
 		Controller controller = new Controller();
 		
 		controller.beginRFIDDeviceReading();
-//		controller.analyzeChangingStatus();
-//		controller.routineStoreStatus();
+		controller.analyzeChangingStatus();
+		controller.routineStoreStatus();
 
 		/*
 		 * Hashtable<Integer, SignalData> rfid_status_new = new

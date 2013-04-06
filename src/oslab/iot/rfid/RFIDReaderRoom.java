@@ -21,7 +21,7 @@ public class RFIDReaderRoom {
 		dbo.connOracle();
 		// get the real room-reader map
 		String s_sql_query = "select a.rfid||'-'||b.reader rfidreader,a.room status  "
-				+ "from  userinfo a , roomreaders b where a.room = b.room ";
+				+ "from  userinfo a , roomreader b where a.room = b.room ";
 		ResultSet rs = dbo.getResult(s_sql_query);
 
 		try {
