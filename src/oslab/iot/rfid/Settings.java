@@ -14,7 +14,7 @@ public class Settings {
 	   
 	   public static final int SPAN_DEAL_DIFF = 6*1000; //RFID STATUS DEAL CHANGE RFID状态变换信息处理周期
 	   
-	   public static final int THRESHOLD_IS_OUT = 20*1000; //判断是否离开监听范围
+	   public static final int THRESHOLD_IS_OUT = 60*1000; //判断是否离开监听范围
 	   
 	   public static final int SPAN_ROUTINE = 30*60*1000; //例行插入状态信息  周期 30*60*1000
 	   public static final int DELAY_ROUTINE = 30*60*1000; //例行插入状态信息 延迟时间 30*60*1000
