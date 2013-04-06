@@ -1,5 +1,6 @@
 package oslab.iot.rfid;
 
+import java.awt.image.renderable.RenderedImageFactory;
 import java.util.Hashtable;
 import java.util.Timer;
 
@@ -18,12 +19,14 @@ public class Controller {
 
 	private Hashtable<Integer, SignalData> rfid_status_new = new Hashtable<Integer, SignalData>(); // source-get中用到
 	private Hashtable<Integer, Integer> rfid_status_old = new Hashtable<Integer, Integer>(); // deal-diff中用到
-	private Hashtable<String, String> rfid_reader_room = new RFIDReaderRoom().get_rfid_reader_room();
+	private Hashtable<String, String> rfid_reader_room =  new Hashtable<String, String>();
 	
 	
 	//============================================================================================
 
 	public Controller() {
+		RFIDInfoPreparation.init_rfid_reader_room(rfid_reader_room);
+		RFIDInfoPreparation.init_rfid_old_status(rfid_status_old);
 		DBOConcurrence.connOracle();
 	}
 
@@ -56,8 +59,8 @@ public class Controller {
 	 */
 	public void routineStoreStatus() {
 		Timer t_routine = new Timer();
-		t_routine.schedule(new RFIDStatusRoutine(rfid_reader_room,
-						rfid_status_new), Settings.DELAY_ROUTINE,
+		t_routine.schedule(new RFIDStatusRoutine(rfid_status_old,
+						rfid_status_new,rfid_reader_room), Settings.DELAY_ROUTINE,
 						Settings.SPAN_ROUTINE);
 	}
 

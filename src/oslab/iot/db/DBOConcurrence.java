@@ -19,7 +19,7 @@ public class DBOConcurrence {
 			Class.forName(driverName);
 
 			// Create a connection to the database
-			String serverName = "192.168.4.193";
+			String serverName = "192.168.3.87";
 			String portNumber = "1521";
 			String sid = "orcl";
 			String url = "jdbc:oracle:thin:@" + serverName + ":" + portNumber

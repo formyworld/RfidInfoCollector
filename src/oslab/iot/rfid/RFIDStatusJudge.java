@@ -89,8 +89,9 @@ public class RFIDStatusJudge extends TimerTask {
 	}
 
 	/**
-	 * statusJudge function: judge from rfid_read_data 1 insert into status 2
-	 * refresh rfid_read_data
+	 * statusJudge function: judge from rfid_read_data 
+	 * 1 insert into status 
+	 * 2 refresh rfid_read_data
 	 */
 	public void statusJudge_with_rssi() {
 		Date now = new Date();
@@ -130,13 +131,37 @@ public class RFIDStatusJudge extends TimerTask {
 			}// end of signal of ON status
 
 		}// end of while
+		
+		//************debug*************************
+//		this.debug_reader_status();
 		/******************* 2 refresh rfid_read_data ***********************************/
 		this.rfid_read_data_with_rssi.clear();
 	}
-
+ 
+	public void debug_reader_status(){
+		int tag_test = 14513;
+		SignalData sd_reader = this.rfid_read_data_with_rssi.get(tag_test);
+		SignalData sd_status = this.rfid_status_with_rssi.get(tag_test);
+		String str_reader = null;
+		String str_status = null;
+		if(sd_reader == null)
+			str_reader = "judge -read data: " +tag_test+" no info ";
+		else
+			str_reader = "judge -read data: " + sd_reader.toString();
+		if(sd_status == null)
+			str_status = "judge-status data: "+tag_test +" no info";
+		else
+			str_status = "judge-status data: "+ sd_status.toString();
+		debug.println(str_reader	);
+		debug.println(str_status);
+		
+	}
+	
+	
 	@Override
 	public void run() {
-		/******************test debug ***********************************************/
+		/* *****************test debug ***********************************************
+		
 		SignalData read_data , status;
 		String str_read_data , str_status;
 		
@@ -156,7 +181,8 @@ public class RFIDStatusJudge extends TimerTask {
 		
 		debug.println("=====before judge , 14513 read data:　"+ str_read_data);
 		debug.println("=====			      	    status:　"+ str_status);
-		/******************test debug ************************************************/
+		
+		******************test debug *********************************************** */
 
 		/*********** situation NO rssi **************************************/
 		if (Settings.workMode == Settings.NORSSIMODE) {
@@ -167,7 +193,7 @@ public class RFIDStatusJudge extends TimerTask {
 			this.statusJudge_with_rssi();
 		}
 		
-		/******************test debug ************************************************/
+		/******************test debug ************************************************
 		read_data = this.rfid_read_data_with_rssi.get(14513);
 		status = this.rfid_status_with_rssi.get(14513);
 		
@@ -184,6 +210,6 @@ public class RFIDStatusJudge extends TimerTask {
 		
 		debug.println("*****after  judge , 14513 read data:　"+ str_read_data);
 		debug.println("***** 			      	    status:　"+ str_status);
-		/******************test debug ************************************************/
+		******************test debug ************************************************/
 	}
 }

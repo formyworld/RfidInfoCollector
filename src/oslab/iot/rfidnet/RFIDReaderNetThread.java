@@ -41,7 +41,7 @@ public class RFIDReaderNetThread extends Thread {
 	protected String addr; // 读头 net地址
 	protected int port; // 读头 port
 
-	private final boolean debug_flag = false;
+	private final boolean debug_flag = true;
 	private Debug debug = new Debug(debug_flag);;
 
 	/**
@@ -78,10 +78,12 @@ public class RFIDReaderNetThread extends Thread {
 	}
 
 	public void run() {
-		System.out.println("reader  " + this.room + " " + this.addr
+		debug.sysout("reader: " + this.room + " with ip: " + this.addr
 				+ " started");
 
 		// 1 启动一线程 对已读取的<tag,time>进行判断
+		debug.println(" new timer for status judge");
+		
 		Timer t = new Timer();
 		if (Settings.workMode == Settings.NORSSIMODE) {
 			t.schedule(new RFIDStatusJudge(rfid_read_data_no_rssi,
@@ -121,7 +123,7 @@ public class RFIDReaderNetThread extends Thread {
 			if (READER_STATUS_ON == reader_status) { // 如果 在线 那么开始读取
 				// 先判断是否ping通
 				if (!NetBean.isHostAlive(this.addr)) {
-					System.out.println("Reader " + this.addr + " get out - "
+					debug.sysout("Reader " + this.addr + " get out - "
 							+ new Date());
 					reader_status = READER_STATUS_OFF; // 如果出错 那么准备重启
 					readerStatusIntoDB(); // reader status into db 成功中失败
@@ -130,7 +132,8 @@ public class RFIDReaderNetThread extends Thread {
 				try {
 					this.read(); // 读取数据
 				} catch (Exception e1) {
-					System.out.println(e1.toString());
+					
+					debug.println("out read error: "+e1.toString());
 					reader_status = READER_STATUS_OFF; // 如果出错 那么准备重启
 					readerStatusIntoDB(); // reader status into db 成功中失败
 				}
@@ -162,10 +165,12 @@ public class RFIDReaderNetThread extends Thread {
 		}
 	}
 
-	/**
+	/***--
 	 * rfidReader STatus into db
 	 */
 	public synchronized void readerStatusIntoDB() {
+		debug.println("reader status into db room:"+this.room+" status:"+this.reader_status);
+		
 		DbOperation dbo = new DbOperation();
 		dbo.connOracle();
 		String ssql = "merge into readerstatus a "
@@ -183,7 +188,7 @@ public class RFIDReaderNetThread extends Thread {
 		dbo.closeImmediate();
 	}
 
-	public void read() throws Exception {
+	public void read() throws Exception  {
 		int len = reader.readPort(readBuffer);
 
 		Parser p = new Parser(readBuffer, len);
@@ -195,7 +200,8 @@ public class RFIDReaderNetThread extends Thread {
 
 		while ((msg_len = p.unpack(msg)) > 0) {
 			tagId = Parser.getTagID(msg, msg_len);
-
+			if(tagId < 1000) break;
+			
 			if (Settings.workMode == Settings.NORSSIMODE) {
 				rfid_read_data_no_rssi.put(new Integer(tagId), new Date());
 				rfid_flags_count++;
@@ -212,6 +218,8 @@ public class RFIDReaderNetThread extends Thread {
 						+ rfid_read_data_with_rssi.get(14513).toString());
 			*/
 		}
+		
+		
 
 	}
 

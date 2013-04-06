@@ -54,6 +54,12 @@ public class RFIDStatusDealChange extends Thread {
 	}
 
 	private void dealDiff() {
+		if (Settings.workMode == Settings.RSSIMODE) {
+			dealDiff_with_rssi();
+		} else {
+			dealDiff_no_rssi();
+		}
+/*
 		Integer oldValue;
 		Integer newValue;
 		boolean isOut;
@@ -112,6 +118,53 @@ public class RFIDStatusDealChange extends Thread {
 			}
 
 		}
+		*/
+	}
+
+	private void dealDiff_with_rssi() {
+		Integer oldValue;
+		Integer newValue;
+		boolean isOut;
+
+
+		debug.println("DealChang begins here:"+new Date().toString());
+
+		// 以 newStatus为外层循环，检查每个新状态
+		Enumeration<Integer> em = this.newStatus_with_rssi.keys();
+		//
+		while (em.hasMoreElements()) {
+			// 0 获得新状态
+			Integer key = em.nextElement();
+			newValue = this.newStatus_with_rssi.get(key).readerId;
+			isOut = this.newStatus_with_rssi.get(key).isOut();
+			
+			if(key == 14513)
+			debug.println("14513 in new status :"+isOut+"  detail:"+this.newStatus_with_rssi.get(key).toString());
+			
+			if (newValue == null)
+				break;
+			// 1 获得老状态
+			oldValue = this.oldStatus.put(key, newValue);
+			if (oldValue == null)
+				oldValue = -1;
+			// 2 如果新旧状态不一致，则生成变化信息
+			if (!newValue.equals(oldValue)) {
+				diffInfoIntoDB(key.toString(),
+						getStatus(key.toString(), oldValue.toString()),
+						getStatus(key.toString(), newValue.toString()));
+
+			}
+			
+			// 3 对newStatus进行自检，如果超时，则a生成离开变化信息 b删除new&old状态信息
+			if (isOut) {
+				this.oldStatus.put(key,-1);
+				
+				diffInfoIntoDB(key.toString(),
+						getStatus(key.toString(), oldValue.toString()),
+						"-1");
+					this.newStatus_with_rssi.remove(key);
+			}
+		}
 	}
 
 	/**
@@ -123,7 +176,7 @@ public class RFIDStatusDealChange extends Thread {
 		boolean isOut;
 		String str_sql;
 
-		debug.println("DealChang begins here:");
+		debug.println("DealChang begins here:"+new Date().toString());
 		// 以 newStatus为外层循环，检查每个新状态
 		Enumeration<Integer> em;
 		em = this.newStatus_no_rssi.keys();
@@ -131,30 +184,17 @@ public class RFIDStatusDealChange extends Thread {
 		while (em.hasMoreElements()) {
 			// 0 获得新状态
 			Integer key = em.nextElement();
-/// change here  ============================   2013.3.25 23:46 
-			if (Settings.workMode == Settings.RSSIMODE) {
-				newValue = this.newStatus_with_rssi.get(key).readerId;
-				isOut = this.newStatus_with_rssi.get(key).isOut();
-			} else {
-				newValue = this.newStatus_no_rssi.get(key);
-				isOut = false;// / 默认处理，在norssi情况下，未对该情况进行考虑
-			}
-
-			if (newValue == null)
-				break;
+			// / change here ============================ 2013.3.25 23:46
+			newValue = this.newStatus_no_rssi.get(key);
+			isOut = false;//
 
 			// 1 对newStatus进行自检，如果超时，则a生成离开变化信息 b删除new&old状态信息
 			if (isOut) {
 				// a 生成离开变化信息
 				diffInfoIntoDB(key.toString(),
 						getStatus(key.toString(), newValue.toString()), "-1");
-				// b 删除new&old状态信息
-				if (Settings.workMode == Settings.RSSIMODE) {
-					this.newStatus_with_rssi.remove(key);
-				} else {
-					this.newStatus_no_rssi.remove(key);
-				}
-				this.oldStatus.remove(key);
+				// b 删除new状态信息
+				this.newStatus_no_rssi.remove(key);
 				// 进行下一个循环
 				break;
 			}
@@ -181,7 +221,7 @@ public class RFIDStatusDealChange extends Thread {
 				+ rfid + "," + oldStatus + "," + newStatus + "," // +newValue.toString()+","
 				+ "sysdate )";
 
-		debug.println("dealChange: -data " + new Date() + " - " + str_sql);
+//		debug.println("dealChange: -data " + new Date() + " - " + str_sql);
 		DBOConcurrence.execSql(str_sql);
 
 		// 修改rfidstatus 实时状态信息表
@@ -191,7 +231,7 @@ public class RFIDStatusDealChange extends Thread {
 				+ "update set a.status = b.status " + "when not matched then "
 				+ "insert (a.rfid,a.status) values(b.rfid,b.status) ";
 
-		debug.println("dealChange: -stat " + new Date() + " - " + str_sql);
+//		debug.println("dealChange: -stat " + new Date() + " - " + str_sql);
 		DBOConcurrence.execSql(str_sql);
 
 	}

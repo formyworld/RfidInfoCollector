@@ -17,10 +17,12 @@ import oslab.iot.util.Debug;
  */
 public class RFIDStatusRoutine extends TimerTask {
 
-	private Hashtable<Integer, Integer> newStatus; // **非RSSI模式下 新状态
-	private Hashtable<Integer, SignalData> newStatus_new; // **RSSI模式下 新状态
+	private Hashtable<Integer, Integer> rfid_status_new_no_rssi; // **非RSSI模式下 新状态
+	private Hashtable<Integer, SignalData> rfid_status_new_with_rssi; // **RSSI模式下 新状态
 	private Hashtable<String, String> rfid_reader_room; // **人员的room和rfidreader对应表
-
+	
+	private Hashtable<Integer, Integer> rfid_status_old ;
+	
 	private final boolean debug_flag = false; // 
 	private Debug debug = new Debug(debug_flag);
 	
@@ -40,30 +42,64 @@ public class RFIDStatusRoutine extends TimerTask {
 	 * @param in_mode
 	 * @param work_mdoe
 	 */
-	public RFIDStatusRoutine(Hashtable<String, String> rfid_reader_status,
-			Hashtable newStatus) {
+//	@Deprecated
+//	public RFIDStatusRoutine(Hashtable<String, String> rfid_reader_status,
+//			Hashtable newStatus) {
+//		this.rfid_reader_room = rfid_reader_status;
+//
+//		if (Settings.workMode == Settings.RSSIMODE) {
+//			this.newStatus_with_rssi = newStatus;
+//		} else {
+//			this.newStatus_no_rssi = newStatus;
+//		}
+//
+//		dbo = new DbOperation();
+//		dbo.connOracle(); // **********这里只打开了一个连接 但是未关闭 尚未找到同步各个数据库操作线程的思路
+//							// *&*需改进
+//	}
+
+	public RFIDStatusRoutine(Hashtable<Integer, Integer> rfid_status_old ,
+			Hashtable<Integer, SignalData> rfid_status_with_rssi,
+			Hashtable<String, String> rfid_reader_status){
 		this.rfid_reader_room = rfid_reader_status;
-
-		if (Settings.workMode == Settings.RSSIMODE) {
-			this.newStatus_new = newStatus;
-		} else {
-			this.newStatus = newStatus;
-		}
-
+		this.rfid_status_old = rfid_status_old;
+		this.rfid_status_new_with_rssi = rfid_status_with_rssi;
 		dbo = new DbOperation();
-		dbo.connOracle(); // **********这里只打开了一个连接 但是未关闭 尚未找到同步各个数据库操作线程的思路
-							// *&*需改进
+		dbo.connOracle();
 	}
-
+	
 	public void run() {
-
+		new_way_store();
+	}
+	private void new_way_store(){
+		em_int = this.rfid_status_new_with_rssi.keys();
+		while(em_int.hasMoreElements()){
+			key = em_int.nextElement();
+			status = getStatus(key.toString(),
+					Integer.toString(this.rfid_status_new_with_rssi.get(key).readerId));
+			
+			statusInfoIntoDB(key.toString(), status);
+		}
+		em_int = this.rfid_status_old.keys();
+		
+		while(em_int.hasMoreElements()){
+			key = em_int.nextElement();
+			if(!this.rfid_status_new_with_rssi.containsKey(key)){
+				status =this.rfid_status_old.get(key).toString();
+				statusInfoIntoDB(key.toString(), status);
+			}
+		}
+		
+		
+	}
+	private void old_way_store(){
 		if (Settings.workMode == Settings.RSSIMODE) {
 			// 1 第一个循环 对采集到的信息进行插入操作
-			em_int = this.newStatus_new.keys();
+			em_int = this.rfid_status_new_with_rssi.keys();
 			while (em_int.hasMoreElements()) {
 				key = em_int.nextElement();
 				status = getStatus(key.toString(),
-						Integer.toString(this.newStatus_new.get(key).readerId));
+						Integer.toString(this.rfid_status_new_with_rssi.get(key).readerId));
 				
 				statusInfoIntoDB(key.toString(), status);
 				
@@ -76,7 +112,7 @@ public class RFIDStatusRoutine extends TimerTask {
 					s_split = rfid_reader.split("-");
 					key = new Integer(s_split[0]);
 					// 如果在newstatus中不存在 则插入 如果存在 则不做任何操作
-					if (!newStatus_new.containsKey(key)) {
+					if (!rfid_status_new_with_rssi.containsKey(key)) {
 						statusInfoIntoDB(key.toString(), "-1");
 					}
 				}
@@ -84,11 +120,11 @@ public class RFIDStatusRoutine extends TimerTask {
 			}
 		} else {
 			// 1 第一个循环 对采集到的信息进行插入操作
-			em_int = this.newStatus.keys();
+			em_int = this.rfid_status_new_no_rssi.keys();
 			while (em_int.hasMoreElements()) {
 				key = em_int.nextElement();
 				status = getStatus(key.toString(),
-						Integer.toString(this.newStatus.get(key)));
+						Integer.toString(this.rfid_status_new_no_rssi.get(key)));
 				statusInfoIntoDB(key.toString(), status);
 				
 			}
@@ -100,14 +136,13 @@ public class RFIDStatusRoutine extends TimerTask {
 					s_split = rfid_reader.split("-");
 					key = new Integer(s_split[0]);
 					// 如果在newstatus中不存在 则插入 如果存在 则不做任何操作
-					if (!newStatus.containsKey(key)) {
+					if (!rfid_status_new_no_rssi.containsKey(key)) {
 						statusInfoIntoDB(key.toString(), "-1");
 					}
 				}
 			}
 
 		}
-
 	}
 
 	/**

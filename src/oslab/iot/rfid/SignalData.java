@@ -14,7 +14,7 @@ public class SignalData {
 	
 	public boolean isOut(){
 		Date now = new Date();
-		long ms = ( now.getTime() - readTime.getTime() ) / 1000;
+		long ms = ( now.getTime() - readTime.getTime() ) ;
 		return  ( ms > Settings.THRESHOLD_IS_OUT  ) ? true : false;
 	}
 	public String toString(){
